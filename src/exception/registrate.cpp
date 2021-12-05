@@ -9,7 +9,11 @@
 #include <dci/utils/b2h.hpp>
 #include "registry.hpp"
 #include <iostream>
-#include <cxxabi.h>
+
+#if __has_include(<cxxabi.h>)
+#   define HAS_CXXABI 1
+#   include <cxxabi.h>
+#endif
 
 namespace dci::exception
 {
@@ -23,15 +27,22 @@ namespace dci::exception
             const registry::Entry& entry = iter->second;
             if(entry._sign != ti.name())
             {
+                std::string sign1;
+                std::string sign2;
+#if HAS_CXXABI
                 int status;
                 char* demangled1 = abi::__cxa_demangle(entry._sign.c_str(), nullptr, nullptr, &status);
                 char* demangled2 = abi::__cxa_demangle(ti.name(), nullptr, nullptr, &status);
 
-                std::string sign1 = demangled1 ? demangled1 : entry._sign;
-                std::string sign2 = demangled2 ? demangled2 : ti.name();
+                sign1 = demangled1 ? demangled1 : entry._sign;
+                sign2 = demangled2 ? demangled2 : ti.name();
 
                 free(demangled1);
                 free(demangled2);
+#else
+                sign1 = entry._sign;
+                sign2 = ti.name();
+#endif
 
                 std::cerr<<"duplicated exception eid detected: "<<utils::b2h(eid)<<", "<<sign1<<" vs "<<sign2<<std::endl;
 
